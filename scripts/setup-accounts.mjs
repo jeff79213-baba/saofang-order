@@ -17,27 +17,45 @@ initializeApp({ credential: cert(serviceAccount) })
 const auth = getAuth()
 const db = getFirestore()
 
-const PASSWORD = process.env.SAOFANG_PASSWORD || 'windroom2026'
-const ACCOUNTS = [
-  { email: 'saofang-front@example.com', role: 'front', name: '櫃台' },
-  { email: 'saofang-housekeeping@example.com', role: 'housekeeping', name: '房務' },
-]
+const DOMAIN = 'saofang.local'
+const PASSWORD = process.env.SAOFANG_PASSWORD || '000000'
 
-async function upsertUser(email) {
+const ACCOUNTS = [
+  { local: 'WIND00', role: 'front', name: '櫃台' },
+  { local: 'JEFF', role: 'housekeeping', name: '房務' },
+]
+// 先前的臨時範例帳號，若存在則移除
+const OLD = ['saofang-front@example.com', 'saofang-housekeeping@example.com']
+
+async function upsert(local, password) {
+  const email = `${local}@${DOMAIN}`
   try {
-    return await auth.getUserByEmail(email)
+    const u = await auth.getUserByEmail(email)
+    await auth.updateUser(u.uid, { password, emailVerified: true })
+    return { user: u, created: false }
   } catch {
-    return await auth.createUser({ email, password: PASSWORD, emailVerified: true })
+    const u = await auth.createUser({ email, password, emailVerified: true })
+    return { user: u, created: true }
   }
 }
 
 async function main() {
   for (const acc of ACCOUNTS) {
-    const user = await upsertUser(acc.email)
+    const { user, created } = await upsert(acc.local, PASSWORD)
     await db.collection('sq-staff').doc(user.uid).set({ role: acc.role, name: acc.name }, { merge: true })
-    console.log(`[帳號] ${acc.email} → ${acc.role}`)
+    console.log(`[${created ? '建立' : '更新'}] ${acc.local}@${DOMAIN} → ${acc.role}（${acc.name}）`)
   }
-  console.log(`\n登入密碼：${PASSWORD}`)
+  for (const email of OLD) {
+    try {
+      const u = await auth.getUserByEmail(email)
+      await db.collection('sq-staff').doc(u.uid).delete()
+      await auth.deleteUser(u.uid)
+      console.log(`[移除] ${email}`)
+    } catch { /* 不存在，略過 */ }
+  }
+  console.log(`\n登入使用者名稱：${ACCOUNTS.map(a => a.local).join(' / ')}`)
+  console.log(`網域（登入時可省略）：@${DOMAIN}`)
+  console.log(`密碼：${PASSWORD}`)
 }
 
 main().then(() => process.exit(0)).catch(e => { console.error('[失敗]', e.message); process.exit(1) })

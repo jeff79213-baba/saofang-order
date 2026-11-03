@@ -10,6 +10,8 @@ function togglePw(inputId: string, btn: HTMLButtonElement) {
     : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
 }
 
+const LOGIN_DOMAIN = 'saofang.local'
+
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
@@ -23,7 +25,9 @@ export function LoginPage() {
     try {
       const { authClient } = await import('../lib/firebase')
       const { signInWithEmailAndPassword } = await import('firebase/auth')
-      await signInWithEmailAndPassword(authClient(), email.trim(), pw)
+      const id = email.trim()
+      const full = id.includes('@') ? id : `${id}@${LOGIN_DOMAIN}`
+      await signInWithEmailAndPassword(authClient(), full, pw)
     } catch {
       setErr('登入失敗，請檢查帳號密碼')
     } finally {
@@ -36,13 +40,13 @@ export function LoginPage() {
       <form onSubmit={submit} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow">
         <h1 className="mb-1 text-lg font-bold text-slate-900">民宿掃房順序</h1>
         <p className="mb-5 text-xs text-slate-500">請以櫃台或房務帳號登入</p>
-        <label className="mb-1 block text-sm text-slate-600">Email</label>
+        <label className="mb-1 block text-sm text-slate-600">帳號</label>
         <input
-          type="email"
+          type="text"
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="mb-3 w-full rounded-lg border border-slate-300 p-2 text-sm"
-          placeholder="you@example.com"
+          placeholder={`WIND00 或 username@${LOGIN_DOMAIN}`}
           autoComplete="username"
         />
         <label className="mb-1 block text-sm text-slate-600">密碼</label>

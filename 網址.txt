@@ -14,6 +14,7 @@ npm run dev → http://localhost:5173
 C:\Users\TW-10\Documents\firebase雲端資料夾\風自然掃房順序
 
 --- 登入帳號（Firebase 模式） ---
-櫃台：saofang-front@example.com
-房務：saofang-housekeeping@example.com
-密碼：windroom2026
+櫃台：WIND00（完整 = WIND00@saofang.local）
+房務：JEFF（完整 = JEFF@saofang.local）
+密碼：000000
+備註：登入頁帳號欄只要打 WIND00 / JEFF 即可，@saofang.local 會自動補上。
