@@ -1,0 +1,166 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== 風自然班表 START =====
+    // 風自然班表（shift_*）規則片段；由 tools/merge-rules.js 併入既有規則，勿整檔覆蓋。
+    // 角色來源為 Firestore 名單文件 shift_users/{uid}.shiftRole（不用 custom claim）。
+    function shiftSignedIn() { return request.auth != null; }
+    function shiftUserPath() { return /databases/$(database)/documents/shift_users/$(request.auth.uid); }
+    function shiftIsManager() {
+      return shiftSignedIn()
+        && exists(shiftUserPath())
+        && get(shiftUserPath()).data.shiftRole == "manager"
+        && get(shiftUserPath()).data.active == true;
+    }
+
+    match /shift_users/{uid} {
+      allow read: if shiftSignedIn();
+      allow create, delete: if shiftIsManager();
+      allow update: if shiftIsManager()
+        || (shiftSignedIn() && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChangePassword']));
+    }
+
+    match /shift_shiftTypes/{id} {
+      allow read: if shiftSignedIn();
+      allow write: if shiftIsManager();
+    }
+
+    match /shift_agentGroups/{id} {
+      allow read: if shiftSignedIn();
+      allow write: if shiftIsManager();
+    }
+
+    match /shift_months/{ym} {
+      allow read: if shiftSignedIn();
+      allow write: if shiftIsManager();
+    }
+
+    match /shift_finals/{ym} {
+      allow read: if shiftSignedIn();
+      allow write: if shiftIsManager();
+    }
+
+    match /shift_settings/{doc} {
+      allow read: if shiftSignedIn();
+      allow write: if shiftIsManager();
+    }
+
+    // 員工只能建立／修改「自己 uid」的休假文件；不可刪除。
+    match /shift_leaves/{id} {
+      allow read: if shiftSignedIn();
+      allow create: if shiftSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if shiftSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // 姓名 → 登入用 email 對照表（登入前需要讀取，故公開唯讀；只能由 Admin SDK 寫入）。
+    match /shift_login_map/{name} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 舊的 setup token 文件：前端不可讀寫，只由 Admin SDK 存取（本模式不使用）。
+    match /shift_setup/{doc} {
+      allow read, write: if false;
+    }
+    // ===== 風自然班表 END =====
+
+
+    
+
+    function signedIn() {
+      return request.auth != null && (
+        request.auth.token.email_verified == true
+        || request.auth.token.firebase.sign_in_provider == 'password'
+        || request.auth.token.firebase.sign_in_provider == 'emailLink'
+        || request.auth.token.sign_in_provider == 'password'
+      );
+    }
+
+    function myEmail() {
+      return signedIn() && request.auth.token.email != null ? request.auth.token.email.lower() : '';
+    }
+
+    function hasMemberDoc() {
+      return signedIn() && myEmail() != '' ? exists(/databases/$(database)/documents/fz_users/$(myEmail())) : false;
+    }
+
+    function memberRole() {
+      return hasMemberDoc() && myEmail() != '' ? get(/databases/$(database)/documents/fz_users/$(myEmail())).data.role : null;
+    }
+
+    function isMember() {
+      return memberRole() in ['admin', 'editor'];
+    }
+
+    function isAdmin() {
+      return memberRole() == 'admin';
+    }
+
+    match /fz_users/{memberEmail} {
+      allow read: if isAdmin() || (signedIn() && myEmail() != '' && memberEmail.lower() == myEmail());
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['role', 'addedAt', 'addedBy'])
+        && request.resource.data.role in ['admin', 'editor']
+        && (memberEmail.lower() != myEmail() || request.resource.data.role == 'admin');
+      allow delete: if isAdmin() && memberEmail.lower() != myEmail();
+    }
+
+    match /fz_days/{date} {
+      allow read, write: if isMember();
+    }
+
+    match /fz_pantry/{doc} {
+      allow read, write: if isMember();
+    }
+
+    match /fz_config/app {
+      allow read: if isMember();
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['dishLib', 'updatedAt', 'updatedBy']);
+      allow delete: if false;
+    }
+
+    // ===== 民宿掃房順序 START =====
+    // 民宿掃房順序（sq-*）規則片段；與其他專案共用 opencode-sk 專案，勿整檔覆蓋。
+    // 角色來源為 Firestore 名單文件 sq-staff/{uid}.role。
+    function sqSignedIn() { return request.auth != null; }
+    function sqRole() {
+      return get(/databases/$(database)/documents/sq-staff/$(request.auth.uid)).data.role;
+    }
+
+    match /sq-staff/{uid} {
+      allow read: if sqSignedIn();
+      allow write: if false;
+    }
+    match /sq-settings/{doc} {
+      allow read: if sqSignedIn();
+      allow write: if sqSignedIn() && sqRole() == 'front';
+    }
+    match /sq-rooms/{roomId} {
+      allow read: if sqSignedIn();
+      allow write: if sqSignedIn() && sqRole() == 'front';
+    }
+    match /sq-days/{day}/rooms/{roomId} {
+      allow read: if sqSignedIn();
+      allow create: if sqSignedIn();
+      allow update: if sqSignedIn() && (
+        sqRole() == 'front' ||
+        (sqRole() == 'housekeeping' &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status','prevStatus','updatedAt','updatedBy']) &&
+         request.resource.data.status in ['clean','dirty','arriving'])
+      );
+      allow delete: if false;
+    }
+    // ===== 民宿掃房順序 END =====
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

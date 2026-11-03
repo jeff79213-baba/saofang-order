@@ -1,0 +1,10 @@
+node_modules
+dist
+.env.local
+.env
+*.local
+*-adminsdk-*.json
+opencode-sk-*.json
+.firebase/
+.superpowers/
+.tools
