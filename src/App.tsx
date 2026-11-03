@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { AuthState } from './hooks/useAuth'
 import { todayKey } from './lib/dayKey'
 import { useRooms } from './hooks/useRooms'
 import { useAuth } from './hooks/useAuth'
@@ -9,8 +10,6 @@ import { LoginPage } from './pages/LoginPage'
 export default function App() {
   const dayKey = todayKey()
   const auth = useAuth()
-  const { rooms, settings, repo } = useRooms(dayKey)
-  const [page, setPage] = useState<'main' | 'settings'>('main')
 
   if (auth.loading) {
     return <div className="flex h-full items-center justify-center text-slate-500">載入中…</div>
@@ -18,11 +17,20 @@ export default function App() {
   if (!auth.role) {
     return <LoginPage />
   }
+  return <AuthedApp dayKey={dayKey} auth={auth} />
+}
+
+function AuthedApp({ dayKey, auth }: {
+  dayKey: string
+  auth: AuthState & { signOut: () => Promise<void> }
+}) {
+  const { rooms, settings, repo } = useRooms(dayKey)
+  const [page, setPage] = useState<'main' | 'settings'>('main')
 
   if (page === 'settings') {
     return (
       <SettingsPage
-        settings={settings} repo={repo} role={auth.role} isDemo={auth.isDemo} email={auth.email}
+        settings={settings} repo={repo} role={auth.role!} isDemo={auth.isDemo} email={auth.email}
         onBack={() => setPage('main')}
         onSignOut={async () => { await auth.signOut(); setPage('main') }}
       />
@@ -31,7 +39,7 @@ export default function App() {
 
   return (
     <MainPage
-      rooms={rooms} settings={settings} role={auth.role} isDemo={auth.isDemo}
+      rooms={rooms} settings={settings} role={auth.role!} isDemo={auth.isDemo}
       repo={repo} dayKey={dayKey} onOpenSettings={() => setPage('settings')}
     />
   )

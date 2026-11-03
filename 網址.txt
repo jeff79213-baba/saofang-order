@@ -1,0 +1,19 @@
+--- GitHub ---
+https://github.com/jeff79213-baba/saofang-order
+
+--- GitHub Pages ---
+https://jeff79213-baba.github.io/saofang-order/
+
+--- Firebase Hosting ---
+https://saofang-sk.web.app
+
+--- 本機預覽 ---
+npm run dev → http://localhost:5173
+
+--- 本地路徑 ---
+C:\Users\TW-10\Documents\firebase雲端資料夾\風自然掃房順序
+
+--- 登入帳號（Firebase 模式） ---
+櫃台：saofang-front@example.com
+房務：saofang-housekeeping@example.com
+密碼：windroom2026

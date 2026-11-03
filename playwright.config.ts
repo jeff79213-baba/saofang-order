@@ -9,8 +9,9 @@ export default defineConfig({
   },
   webServer: {
     command: 'npm run dev',
+    env: { VITE_USE_MOCK: 'true' },
     url: 'http://localhost:5173',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 120000,
   },
 })
