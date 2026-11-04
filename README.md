@@ -27,7 +27,9 @@ npm run build      # 型別檢查 + 打包
 ## Firebase 設定
 
 1. 建立 Firebase 專案 → 啟用 Firestore（production mode）→ 啟用 Auth 的 Email/Password → 新增 Hosting。
-2. 建立帳號（用 Admin SDK 工具，無需 Console，也不需要 Blaze）：
+2. 建立帳號（二選一，皆不需 Blaze）：
+   - **App 內**：櫃台登入後 → 設定 → 帳號管理 → 新增帳號。
+   - **工具**（Admin SDK，可先開第一位櫃台帳號）：
    ```bash
    node tools/set-account.mjs WIND00 000000 front          # 櫃台
    node tools/set-account.mjs JEFF   000000 housekeeping   # 房務
@@ -55,9 +57,10 @@ npm run build      # 型別檢查 + 打包
 
 ### 帳號管理
 
-- **App 內**（櫃台：設定 → 帳號管理）：列出全部帳號、改角色、停用、刪除（進保留區）、復原。刪除＝收回權限（停用登入）並放入保留區，可復原。
-- **工具**（Admin SDK）：建立帳號、改密碼、永久刪除，見上方 `tools/set-account.mjs`。
-- 未使用 Cloud Functions（因此不需要 Blaze 付費方案）。
+- **App 內**（櫃台：設定 → 帳號管理）：**新增帳號**、列出全部帳號、備註（中文名）、改角色、停用、刪除（進保留區）、復原。刪除＝收回權限（停用登入）並放入保留區，可復原。櫃台帳號一律排最前面。
+- **新增帳號原理**：前端用**第二個 Firebase app 實例**呼叫 `createUserWithEmailAndPassword` 建立 Auth 使用者（不影響目前櫃台登入），再寫入 `sq-staff` 名單；因此**不需要 Cloud Functions、不需要 Blaze**（比照「風自然餐廳專用」做法）。
+- **工具**（Admin SDK，選用）：重設密碼、永久刪除，見上方 `tools/set-account.mjs`。
+- 短帳號自動補 `@saofang.local`。
 
 Firestore 頂層集合一律使用 `sq-` 前綴：`sq-staff`、`sq-settings`、`sq-rooms`、`sq-days`。
 安全性規則見 `firestore.rules`：房務僅能改當日房況的 `status / prevStatus / updatedAt / updatedBy`，且狀態限 `clean / dirty / arriving`。

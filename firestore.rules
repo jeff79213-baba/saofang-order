@@ -139,8 +139,12 @@ service cloud.firestore {
       allow update: if sqSignedIn() && sqRole() == 'front'
         && request.auth.uid != uid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['role', 'name', 'disabled', 'deleted', 'deletedAt']);
-      allow create, delete: if false;
+             .hasOnly(['role', 'name', 'note', 'disabled', 'deleted', 'deletedAt']);
+      // 櫃台可在 App 內新增員工帳號（前端以第二 app 實例建立 Auth 後寫入本名單）
+      allow create: if sqSignedIn() && sqRole() == 'front'
+        && request.resource.data.keys()
+             .hasOnly(['role', 'name', 'note', 'email', 'disabled', 'deleted', 'deletedAt', 'createdAt']);
+      allow delete: if false;
     }
     match /sq-settings/{doc} {
       allow read: if sqSignedIn();

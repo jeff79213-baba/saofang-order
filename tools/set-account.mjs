@@ -30,7 +30,7 @@ function accountToEmail(raw) {
 
 function usage() {
   console.log('用法：')
-  console.log('  node tools/set-account.mjs <帳號> <密碼> [front|housekeeping]  開帳號（預設 housekeeping）')
+  console.log('  node tools/set-account.mjs <帳號> <密碼> [front|housekeeping] [備註中文名]  開帳號（預設 housekeeping）')
   console.log('  node tools/set-account.mjs <帳號> --password <新密碼>           重設密碼')
   console.log('  node tools/set-account.mjs <帳號> --remove                      永久刪除帳號')
   console.log('  node tools/set-account.mjs <帳號> --disable | --enable         停用/啟用')
@@ -49,7 +49,7 @@ async function list() {
   })
 }
 
-async function open(rawAccount, password, role, name) {
+async function open(rawAccount, password, role, note) {
   const email = accountToEmail(rawAccount)
   if (!email) throw new Error('帳號格式不正確')
   if (!password || password.length < 6) throw new Error('密碼至少 6 碼')
@@ -65,7 +65,7 @@ async function open(rawAccount, password, role, name) {
   }
   const uid = (await auth.getUserByEmail(email)).uid
   await db.doc(`sq-staff/${uid}`).set({
-    role, name: name || rawAccount, email: email.toLowerCase(),
+    role, name: '', note: note || '', email: email.toLowerCase(),
     deleted: false, disabled: false, createdAt: FieldValue.serverTimestamp(),
   }, { merge: true })
   console.log(`[完成] ${email} → ${role}${created ? '' : '（已存在，已更新密碼/角色）'}`)
@@ -103,12 +103,12 @@ async function main() {
   const args = process.argv.slice(2)
   if (!args.length || args[0] === '--help') return usage()
   if (args[0] === '--list') return list()
-  const [account, second, third] = args
+  const [account, second, third, fourth] = args
   if (second === '--remove') return remove(account)
   if (second === '--password') return resetPassword(account, third)
   if (second === '--disable') return setDisabled(account, true)
   if (second === '--enable') return setDisabled(account, false)
-  return open(account, second, third || 'housekeeping')
+  return open(account, second, third || 'housekeeping', fourth)
 }
 
 main().then(() => process.exit(0)).catch(err => { console.error('[失敗]', err.message); process.exit(1) })
