@@ -12,6 +12,7 @@ test('房務自動打掃模式且看不到櫃台按鈕', async ({ page }) => {
   await expect(page.getByText('打掃模式', { exact: true })).toBeVisible()
   await expect(page.getByText('一鍵滿房')).toHaveCount(0)
   await expect(page.getByText('換日')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '登出' })).toBeVisible()
 })
 
 test('房務在打掃模式可標記已打掃', async ({ page }) => {

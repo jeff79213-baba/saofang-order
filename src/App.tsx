@@ -47,6 +47,7 @@ function AuthedApp({ dayKey, auth }: {
     <MainPage
       rooms={rooms} settings={settings} role={auth.role!} isDemo={auth.isDemo}
       repo={repo} dayKey={dayKey} onOpenSettings={() => setPage('settings')}
+      onSignOut={async () => { await auth.signOut(); setPage('main') }}
     />
   )
 }

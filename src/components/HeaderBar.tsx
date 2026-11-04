@@ -13,6 +13,7 @@ export function HeaderBar(props: {
   onFillHouse: () => void
   onResetDay: () => void
   onSettings: () => void
+  onSignOut: () => void
 }) {
   const isFront = props.role === 'front'
   const md = props.dayKey.slice(5).replace('-', '/')
@@ -34,13 +35,16 @@ export function HeaderBar(props: {
       <div className="flex items-center gap-2 px-4 pb-2">
         <ModeToggle mode={props.mode} locked={!isFront} onToggle={props.onMode} />
         {props.isDemo && <span className="text-xs text-amber-700">DEMO 模式（資料不共用）</span>}
-        {isFront && (
-          <div className="ml-auto flex gap-2">
-            <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onFillHouse}>一鍵滿房</button>
-            <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onResetDay}>換日</button>
-            <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onSettings}>⚙</button>
-          </div>
-        )}
+        <div className="ml-auto flex gap-2">
+          {isFront && (
+            <>
+              <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onFillHouse}>一鍵滿房</button>
+              <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onResetDay}>換日</button>
+              <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onSettings}>⚙</button>
+            </>
+          )}
+          <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600" onClick={props.onSignOut}>登出</button>
+        </div>
       </div>
     </header>
   )

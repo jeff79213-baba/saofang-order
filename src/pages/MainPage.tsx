@@ -20,9 +20,10 @@ interface Props {
   repo: RoomRepo
   dayKey: string
   onOpenSettings: () => void
+  onSignOut: () => void
 }
 
-export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSettings }: Props) {
+export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSettings, onSignOut }: Props) {
   const [building, setBuilding] = useState<BuildingId>('A')
   const [mode, setMode] = useState<'normal' | 'clean'>(role === 'housekeeping' ? 'clean' : 'normal')
   const [pending, setPending] = useState<Set<string>>(new Set())
@@ -186,6 +187,7 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
         mode={effectiveMode} onMode={() => setMode(m => (m === 'clean' ? 'normal' : 'clean'))}
         dayKey={dayKey} isDemo={isDemo}
         onFillHouse={onFillHouse} onResetDay={onResetDay} onSettings={onOpenSettings}
+        onSignOut={onSignOut}
       />
       <main className="px-4 py-4">
         {settings.floors.map(floor => {
