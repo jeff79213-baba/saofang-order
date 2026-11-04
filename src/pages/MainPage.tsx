@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BuildingId, Role, RoomState, Settings } from '../types'
 import { BUILDINGS, BUILDING_LABEL } from '../types'
-import { buildQueue } from '../lib/ordering'
+import { buildQueueBuilding } from '../lib/ordering'
 import { nextDayKey } from '../lib/dayKey'
 import type { RoomRepo } from '../lib/repo'
 import { HeaderBar } from '../components/HeaderBar'
@@ -71,14 +71,17 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
       if (!map.has(r.floor)) map.set(r.floor, [])
       map.get(r.floor)!.push(r)
     }
+    for (const arr of map.values()) arr.sort((a, b) => a.no.localeCompare(b.no, 'en', { numeric: true }))
     return map
   }, [rooms, building])
 
-  function seqMap(floorRooms: RoomState[], floorId: string) {
+  // 整棟一起編號（依權重），不逐層重來
+  const seqAll = useMemo(() => {
     const m = new Map<string, number>()
-    for (const { room, seq } of buildQueue(floorRooms, orders[floorId])) m.set(room.id, seq)
+    const buildingRooms = rooms.filter(r => r.building === building)
+    for (const { room, seq } of buildQueueBuilding(buildingRooms, orders)) m.set(room.id, seq)
     return m
-  }
+  }, [rooms, building, orders])
 
   function onCardClick(room: RoomState) {
     if (effectiveMode === 'clean') {
@@ -189,7 +192,6 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
           const floorRooms = byFloor.get(floor) ?? []
           if (floorRooms.length === 0) return null
           const floorId = `${building}-${floor}`
-          const sm = seqMap(floorRooms, floorId)
           return (
             <FloorSection
               key={floor} building={building} floor={floor} rooms={floorRooms} columns={columns}
@@ -198,7 +200,7 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
               onCustomOrder={() => setOrderFloor(floor)}
               renderCard={room => (
                 <RoomCard
-                  key={room.id} room={room} seq={sm.get(room.id) ?? null}
+                  key={room.id} room={room} seq={seqAll.get(room.id) ?? null}
                   role={role} mode={effectiveMode} pending={pending.has(room.id)}
                   onCardClick={onCardClick} onLongPressTime={setTimeRoom}
                   onToggleNextGuest={onToggleNextGuest} onMarkClean={onMarkClean}

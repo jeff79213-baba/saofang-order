@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tier, buildQueue } from './ordering'
+import { tier, buildQueue, buildQueueBuilding } from './ordering'
 import type { RoomState, Status } from '../types'
 
 function mk(no: string, status: Status, extra: Partial<RoomState> = {}): RoomState {
@@ -116,5 +116,44 @@ describe('buildQueue 自訂順序', () => {
   it('4. customOrder 為空陣列 → 回自動排序', () => {
     const q = buildQueue([a, b, c], [])
     expect(q.map(x => x.room.no)).toEqual(['101', '102', '103'])
+  })
+})
+
+describe('buildQueueBuilding 整棟編號', () => {
+  const mkf = (floor: number, no: string, extra: Partial<RoomState> = {}) =>
+    mk(no, 'dirty', { floor, ...extra })
+
+  it('一館 8 間全 dirty → 整棟 1..8，依樓層與房號', () => {
+    const rooms = [
+      mkf(1, '101'), mkf(1, '102'),
+      mkf(2, '201'), mkf(2, '202'),
+      mkf(3, '301'), mkf(3, '302'),
+      mkf(5, '501'), mkf(5, '502'),
+    ]
+    const q = buildQueueBuilding(rooms)
+    expect(q.map(x => x.seq)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    expect(q.map(x => x.room.no)).toEqual(['101', '102', '201', '202', '301', '302', '501', '502'])
+  })
+
+  it('不逐層重來：2F 的房編號接著 1F', () => {
+    const q = buildQueueBuilding([mkf(1, '101'), mkf(1, '102'), mkf(2, '201')])
+    expect(q.find(x => x.room.no === '201')!.seq).toBe(3)
+  })
+
+  it('權重優先：3F 待入住(有時間) 排到整棟第 1', () => {
+    const rooms = [
+      mkf(1, '101'), mkf(1, '102'),
+      mkf(3, '301', { status: 'arriving', checkInTime: '15:00' }),
+    ]
+    const q = buildQueueBuilding(rooms)
+    expect(q[0].room.no).toBe('301')
+    expect(q[0].seq).toBe(1)
+  })
+
+  it('樓層自訂順序在該層內生效', () => {
+    const a1 = mkf(1, '101')
+    const a2 = mkf(1, '102')
+    const q = buildQueueBuilding([a1, a2], { 'A-1': [a2.id, a1.id] })
+    expect(q.map(x => x.room.no)).toEqual(['102', '101'])
   })
 })
