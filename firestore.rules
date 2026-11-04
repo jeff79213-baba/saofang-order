@@ -135,7 +135,12 @@ service cloud.firestore {
 
     match /sq-staff/{uid} {
       allow read: if sqSignedIn();
-      allow write: if false;
+      // 櫃台可管理他人帳號的名單欄位（角色／姓名／停用／保留區）；不可動自己、不可建立或硬刪。
+      allow update: if sqSignedIn() && sqRole() == 'front'
+        && request.auth.uid != uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['role', 'name', 'disabled', 'deleted', 'deletedAt']);
+      allow create, delete: if false;
     }
     match /sq-settings/{doc} {
       allow read: if sqSignedIn();

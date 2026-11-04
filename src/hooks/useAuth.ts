@@ -29,7 +29,7 @@ export function useAuth(): AuthState & { signOut: () => Promise<void> } {
     let unsub: () => void = () => {}
     ;(async () => {
       const { authClient, dbClient } = await import('../lib/firebase')
-      const { onAuthStateChanged } = await import('firebase/auth')
+      const { onAuthStateChanged, signOut: fbSignOut } = await import('firebase/auth')
       const { doc, getDoc } = await import('firebase/firestore')
       unsub = onAuthStateChanged(authClient(), async (user) => {
         if (!user) {
@@ -38,8 +38,13 @@ export function useAuth(): AuthState & { signOut: () => Promise<void> } {
         }
         try {
           const snap = await getDoc(doc(dbClient(), 'sq-staff', user.uid))
-          const role = snap.exists() ? (snap.data().role as Role) : null
-          setState(s => ({ ...s, role, uid: user.uid, email: user.email ?? '', loading: false }))
+          const data = snap.exists() ? snap.data() : null
+          if (!data || data.deleted === true || data.disabled === true) {
+            await fbSignOut(authClient())
+            setState(s => ({ ...s, role: null, uid: '', email: '', loading: false }))
+            return
+          }
+          setState(s => ({ ...s, role: data.role as Role, uid: user.uid, email: user.email ?? '', loading: false }))
         } catch {
           setState(s => ({ ...s, role: null, uid: user.uid, email: user.email ?? '', loading: false }))
         }

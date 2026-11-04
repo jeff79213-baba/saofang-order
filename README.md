@@ -27,7 +27,16 @@ npm run build      # 型別檢查 + 打包
 ## Firebase 設定
 
 1. 建立 Firebase 專案 → 啟用 Firestore（production mode）→ 啟用 Auth 的 Email/Password → 新增 Hosting。
-2. 在 Console 建立兩個帳號（例：`front@…`、`housekeeping@…`），到 Firestore 建立 `sq-staff/{uid}` 並寫入 `role: 'front'` 或 `'housekeeping'`。
+2. 建立帳號（用 Admin SDK 工具，無需 Console，也不需要 Blaze）：
+   ```bash
+   node tools/set-account.mjs WIND00 000000 front          # 櫃台
+   node tools/set-account.mjs JEFF   000000 housekeeping   # 房務
+   node tools/set-account.mjs --list                       # 列出名單
+   node tools/set-account.mjs WIND00 --password 新密碼      # 改密碼
+   node tools/set-account.mjs JEFF --remove                # 永久刪除
+   node tools/set-account.mjs JEFF --disable                # 停用
+   ```
+   帳號省略 `@` 時自動補 `@saofang.local`；角色為 `front`（櫃台）或 `housekeeping`（房務）。
 3. 複製 `.env.example` 為 `.env.local`，填入：
    ```
    VITE_FIREBASE_API_KEY=
@@ -43,6 +52,12 @@ npm run build      # 型別檢查 + 打包
    npm run seed           # 建立 56 筆 sq-rooms 與 sq-settings/app（需父目錄服務帳號金鑰）
    npm run deploy:safe    # 漂移檢查 + hosting + firestore
    ```
+
+### 帳號管理
+
+- **App 內**（櫃台：設定 → 帳號管理）：列出全部帳號、改角色、停用、刪除（進保留區）、復原。刪除＝收回權限（停用登入）並放入保留區，可復原。
+- **工具**（Admin SDK）：建立帳號、改密碼、永久刪除，見上方 `tools/set-account.mjs`。
+- 未使用 Cloud Functions（因此不需要 Blaze 付費方案）。
 
 Firestore 頂層集合一律使用 `sq-` 前綴：`sq-staff`、`sq-settings`、`sq-rooms`、`sq-days`。
 安全性規則見 `firestore.rules`：房務僅能改當日房況的 `status / prevStatus / updatedAt / updatedBy`，且狀態限 `clean / dirty / arriving`。
