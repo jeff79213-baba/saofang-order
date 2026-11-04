@@ -5,6 +5,7 @@ import { useRooms } from './hooks/useRooms'
 import { useAuth } from './hooks/useAuth'
 import { MainPage } from './pages/MainPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { AccountsPage } from './pages/AccountsPage'
 import { LoginPage } from './pages/LoginPage'
 
 export default function App() {
@@ -25,7 +26,11 @@ function AuthedApp({ dayKey, auth }: {
   auth: AuthState & { signOut: () => Promise<void> }
 }) {
   const { rooms, settings, repo } = useRooms(dayKey)
-  const [page, setPage] = useState<'main' | 'settings'>('main')
+  const [page, setPage] = useState<'main' | 'settings' | 'accounts'>('main')
+
+  if (page === 'accounts' && auth.role === 'front') {
+    return <AccountsPage onBack={() => setPage('settings')} />
+  }
 
   if (page === 'settings') {
     return (
@@ -33,6 +38,7 @@ function AuthedApp({ dayKey, auth }: {
         settings={settings} repo={repo} role={auth.role!} isDemo={auth.isDemo} email={auth.email}
         onBack={() => setPage('main')}
         onSignOut={async () => { await auth.signOut(); setPage('main') }}
+        onOpenAccounts={() => setPage('accounts')}
       />
     )
   }

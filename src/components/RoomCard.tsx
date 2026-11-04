@@ -11,11 +11,12 @@ interface Props {
   onCardClick: (room: RoomState) => void
   onLongPressTime: (room: RoomState) => void
   onToggleNextGuest: (room: RoomState) => void
+  onMarkClean: (room: RoomState) => void
 }
 
 const LONG_MS = 1000
 
-export function RoomCard({ room, seq, role, mode, pending, onCardClick, onLongPressTime, onToggleNextGuest }: Props) {
+export function RoomCard({ room, seq, role, mode, pending, onCardClick, onLongPressTime, onToggleNextGuest, onMarkClean }: Props) {
   const pressRef = useRef<{ timer: number; cancelled: boolean; startX: number; startY: number } | null>(null)
   const suppressRef = useRef(false)
   const canSetTime = role === 'front'
@@ -68,6 +69,16 @@ export function RoomCard({ room, seq, role, mode, pending, onCardClick, onLongPr
     >
       <div className="flex items-start justify-between">
         <span className="text-xl font-bold tabular-nums">{room.no}</span>
+        {canSetTime && mode === 'normal' && room.status !== 'occupied' && (
+          <button
+            type="button"
+            className={`-mr-1 -mt-1 rounded-lg px-1.5 py-0.5 text-sm ${room.status === 'clean' ? 'bg-emerald-600 text-white' : 'bg-black/5 text-slate-600'}`}
+            onClick={(e) => { e.stopPropagation(); onMarkClean(room) }}
+            title={room.status === 'clean' ? '復原' : '標記已打掃'}
+          >
+            ✓
+          </button>
+        )}
       </div>
       <div className="text-center text-2xl font-black tabular-nums">{center}</div>
       <div className="flex flex-col items-center gap-1">

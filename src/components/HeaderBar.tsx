@@ -9,7 +9,6 @@ export function HeaderBar(props: {
   mode: 'normal' | 'clean'
   onMode: () => void
   dayKey: string
-  totalRooms: number
   isDemo: boolean
   onFillHouse: () => void
   onResetDay: () => void
@@ -30,7 +29,6 @@ export function HeaderBar(props: {
           </button>
         ))}
         <span className="ml-auto text-xs opacity-80">{md}</span>
-        <span className="text-xs opacity-80">{props.totalRooms} 間</span>
         <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{isFront ? '櫃台' : '房務'}</span>
       </div>
       <div className="flex items-center gap-2 px-4 pb-2">

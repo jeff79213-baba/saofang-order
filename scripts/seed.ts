@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { randomUUID } from 'node:crypto'
 import { initializeApp, cert } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 
@@ -18,14 +19,13 @@ function findKeyFile(): string | null {
   return files.length ? path.join(keyDir, files[0]) : null
 }
 
-function buildRoomList(layout: Record<string, Record<string, number>>, floors: number[]) {
+export function buildRooms(layout: Record<string, Record<string, number>>, floors: number[]) {
   const out: Array<{ id: string; building: string; floor: number; no: string; enabled: boolean }> = []
   for (const building of ['A', 'B']) {
     for (const floor of floors) {
       const count = layout[building]?.[String(floor)] ?? 0
       for (let seq = 1; seq <= count; seq++) {
-        const no = String(floor * 100 + seq)
-        out.push({ id: `${building}-${no}`, building, floor, no, enabled: true })
+        out.push({ id: `${building}-${randomUUID()}`, building, floor, no: String(floor * 100 + seq), enabled: true })
       }
     }
   }
@@ -44,11 +44,17 @@ async function main() {
 
   await db.collection('sq-settings').doc('app').set({ floors: DEFAULT_FLOORS, layout: DEFAULT_LAYOUT }, { merge: true })
 
-  const rooms = buildRoomList(DEFAULT_LAYOUT, DEFAULT_FLOORS)
+  const existing = await db.collection('sq-rooms').limit(1).get()
+  if (!existing.empty) {
+    console.log('[略過] sq-rooms 已有資料，不重複建立（如需重建請用 node scripts/reset-data.mjs）。')
+    return
+  }
+
+  const rooms = buildRooms(DEFAULT_LAYOUT, DEFAULT_FLOORS)
   const batch = db.batch()
   for (const r of rooms) {
     const { id, ...rest } = r
-    batch.set(db.collection('sq-rooms').doc(id), rest, { merge: true })
+    batch.set(db.collection('sq-rooms').doc(id), rest)
   }
   await batch.commit()
 

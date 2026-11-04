@@ -157,6 +157,11 @@ service cloud.firestore {
       );
       allow delete: if false;
     }
+    match /sq-days/{day}/orders/{floorId} {
+      allow read: if sqSignedIn();
+      allow create, update: if sqSignedIn() && sqRole() == 'front';
+      allow delete: if sqSignedIn() && sqRole() == 'front';
+    }
     // ===== 民宿掃房順序 END =====
 
     match /{document=**} {

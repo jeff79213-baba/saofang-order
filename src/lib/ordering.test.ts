@@ -95,3 +95,26 @@ describe('buildQueue', () => {
     expect(q.map(x => x.room.no)).toEqual(['101', '103', '104', '105'])
   })
 })
+
+describe('buildQueue 自訂順序', () => {
+  const a = mk('101', 'dirty')
+  const b = mk('102', 'dirty')
+  const c = mk('103', 'dirty')
+  it('1. 依 customOrder 排序，未列者補後', () => {
+    const q = buildQueue([a, b, c], [c.id, a.id])
+    expect(q.map(x => x.room.no)).toEqual(['103', '101', '102'])
+  })
+  it('2. customOrder 含不存在 id → 忽略', () => {
+    const q = buildQueue([a, b], ['A-999', b.id, a.id])
+    expect(q.map(x => x.room.no)).toEqual(['102', '101'])
+  })
+  it('3. clean/occupied 即使在 customOrder 也不排入', () => {
+    const clean = mk('104', 'clean')
+    const q = buildQueue([a, clean], [clean.id, a.id])
+    expect(q.map(x => x.room.no)).toEqual(['101'])
+  })
+  it('4. customOrder 為空陣列 → 回自動排序', () => {
+    const q = buildQueue([a, b, c], [])
+    expect(q.map(x => x.room.no)).toEqual(['101', '102', '103'])
+  })
+})

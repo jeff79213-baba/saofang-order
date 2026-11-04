@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BuildingId, Role, RoomState, Settings } from '../types'
+import { BUILDINGS, BUILDING_LABEL } from '../types'
 import { buildQueue } from '../lib/ordering'
 import { nextDayKey } from '../lib/dayKey'
 import type { RoomRepo } from '../lib/repo'
@@ -7,6 +8,7 @@ import { HeaderBar } from '../components/HeaderBar'
 import { FloorSection } from '../components/FloorSection'
 import { RoomCard } from '../components/RoomCard'
 import { TimeModal } from '../components/TimeModal'
+import { OrderSheet } from '../components/OrderSheet'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ToastHost, type ToastMsg } from '../components/Toast'
 
@@ -26,9 +28,24 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
   const [pending, setPending] = useState<Set<string>>(new Set())
   const [toasts, setToasts] = useState<ToastMsg[]>([])
   const [timeRoom, setTimeRoom] = useState<RoomState | null>(null)
+  const [orderFloor, setOrderFloor] = useState<number | null>(null)
+  const [orders, setOrders] = useState<Record<string, string[]>>({})
   const [confirm, setConfirm] = useState<null | { title: string; message: string; onOk: () => void }>(null)
 
   const effectiveMode: 'normal' | 'clean' = role === 'housekeeping' ? 'clean' : mode
+  const canCustomOrder = role === 'front'
+
+  useEffect(() => {
+    const uns: Array<() => void> = []
+    for (const b of BUILDINGS) {
+      for (const f of settings.floors) {
+        const floorId = `${b}-${f}`
+        uns.push(repo.subscribeOrder(dayKey, floorId, ids =>
+          setOrders(o => ({ ...o, [floorId]: ids }))))
+      }
+    }
+    return () => uns.forEach(u => u())
+  }, [repo, dayKey, settings.floors])
 
   function toast(text: string) {
     const id = Date.now() + Math.random()
@@ -57,9 +74,9 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
     return map
   }, [rooms, building])
 
-  function seqMap(floorRooms: RoomState[]) {
+  function seqMap(floorRooms: RoomState[], floorId: string) {
     const m = new Map<string, number>()
-    for (const { room, seq } of buildQueue(floorRooms)) m.set(room.id, seq)
+    for (const { room, seq } of buildQueue(floorRooms, orders[floorId])) m.set(room.id, seq)
     return m
   }
 
@@ -83,6 +100,15 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
       send([{ roomId: room.id, patch: {
         status: 'occupied', nextGuest: false, checkedOutAt: null, prevStatus: null,
       } }])
+    }
+  }
+
+  function onMarkClean(room: RoomState) {
+    if (role !== 'front' || room.status === 'occupied') return
+    if (room.status === 'clean') {
+      send([{ roomId: room.id, patch: { status: room.prevStatus ?? 'dirty', prevStatus: null } }])
+    } else {
+      send([{ roomId: room.id, patch: { prevStatus: room.status, status: 'clean' } }])
     }
   }
 
@@ -111,7 +137,7 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
   function onFillHouse() {
     const inBuilding = rooms.filter(r => r.building === building)
     const skipped = inBuilding.filter(r => r.nextGuest).length
-    const label = building === 'A' ? '一館' : '二館'
+    const label = BUILDING_LABEL[building]
     setConfirm({
       title: `一鍵滿房 ${label}`,
       message: `${inBuilding.length} 間將全部亮燈，設有「後續入住」的房間會維持待入住。確定？`,
@@ -147,27 +173,35 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
     ? 'grid-cols-2 sm:grid-cols-4'
     : 'grid-cols-4 sm:grid-cols-6'
 
+  const orderRooms = orderFloor === null ? [] : (byFloor.get(orderFloor) ?? [])
+    .filter(r => r.status === 'arriving' || r.status === 'dirty')
+
   return (
     <div className="min-h-full bg-slate-100 pb-10">
       <HeaderBar
         building={building} onBuilding={setBuilding} role={role}
         mode={effectiveMode} onMode={() => setMode(m => (m === 'clean' ? 'normal' : 'clean'))}
-        dayKey={dayKey} totalRooms={rooms.length} isDemo={isDemo}
+        dayKey={dayKey} isDemo={isDemo}
         onFillHouse={onFillHouse} onResetDay={onResetDay} onSettings={onOpenSettings}
       />
       <main className="px-4 py-4">
         {settings.floors.map(floor => {
           const floorRooms = byFloor.get(floor) ?? []
           if (floorRooms.length === 0) return null
-          const sm = seqMap(floorRooms)
+          const floorId = `${building}-${floor}`
+          const sm = seqMap(floorRooms, floorId)
           return (
             <FloorSection
               key={floor} building={building} floor={floor} rooms={floorRooms} columns={columns}
+              canCustomOrder={canCustomOrder}
+              hasCustomOrder={(orders[floorId] ?? []).length > 0}
+              onCustomOrder={() => setOrderFloor(floor)}
               renderCard={room => (
                 <RoomCard
                   key={room.id} room={room} seq={sm.get(room.id) ?? null}
                   role={role} mode={effectiveMode} pending={pending.has(room.id)}
-                  onCardClick={onCardClick} onLongPressTime={setTimeRoom} onToggleNextGuest={onToggleNextGuest}
+                  onCardClick={onCardClick} onLongPressTime={setTimeRoom}
+                  onToggleNextGuest={onToggleNextGuest} onMarkClean={onMarkClean}
                 />
               )}
             />
@@ -176,6 +210,16 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
       </main>
       {timeRoom && (
         <TimeModal room={timeRoom} onConfirm={onConfirmTime} onClear={onClearTime} onClose={() => setTimeRoom(null)} />
+      )}
+      {orderFloor !== null && (
+        <OrderSheet
+          title={`${BUILDING_LABEL[building]} ${orderFloor}F`}
+          rooms={orderRooms}
+          ids={orders[`${building}-${orderFloor}`] ?? []}
+          onSave={async (ids) => { setOrderFloor(null); try { await repo.saveOrder(dayKey, `${building}-${orderFloor}`, ids) } catch { toast('儲存失敗，請重試') } }}
+          onClear={async () => { setOrderFloor(null); try { await repo.clearOrder(dayKey, `${building}-${orderFloor}`) } catch { toast('儲存失敗，請重試') } }}
+          onClose={() => setOrderFloor(null)}
+        />
       )}
       <ConfirmDialog
         open={!!confirm} title={confirm?.title ?? ''} message={confirm?.message ?? ''}

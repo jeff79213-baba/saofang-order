@@ -1,0 +1,13 @@
+{
+  "name": "saofang-functions",
+  "description": "民宿掃房順序 Cloud Functions",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.1.0"
+  }
+}

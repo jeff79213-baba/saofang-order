@@ -1,4 +1,4 @@
-import type { RoomMeta, RoomState, Settings } from '../types'
+import type { BuildingId, RoomMeta, RoomState, Settings } from '../types'
 import { createMockRepo } from './repo.mock'
 import { createFirebaseRepo } from './repo.firebase'
 
@@ -12,7 +12,12 @@ export interface RoomRepo {
   getSettings(): Promise<Settings>
   saveSettings(p: Partial<Settings>): Promise<void>
   setRoomEnabled(roomId: string, enabled: boolean): Promise<void>
-  applyLayout(layout: Settings['layout']): Promise<void>
+  addRoom(building: BuildingId, floor: number, no: string): Promise<void>
+  updateRoomNo(roomId: string, no: string): Promise<void>
+  removeRoom(roomId: string): Promise<void>
+  subscribeOrder(dayKey: string, floorId: string, cb: (ids: string[]) => void): () => void
+  saveOrder(dayKey: string, floorId: string, ids: string[]): Promise<void>
+  clearOrder(dayKey: string, floorId: string): Promise<void>
 }
 
 export function hasFirebaseEnv(): boolean {

@@ -26,9 +26,12 @@ describe('buildRoomList', () => {
     const list = buildRoomList(layout, [1, 2, 3, 5])
     expect(list.filter(r => r.building === 'A' && r.floor === 1)).toHaveLength(0)
   })
-  it('roomId 格式為 A-101', () => {
+  it('roomId 為穩定且唯一的 A-開頭字串', () => {
     const list = buildRoomList(DEFAULT_LAYOUT, [1, 2, 3, 5])
-    expect(list.find(r => r.no === '101')!.id).toBe('A-101')
+    const r101 = list.find(r => r.no === '101')!
+    expect(r101.id.startsWith('A-')).toBe(true)
+    const ids = new Set(list.map(r => r.id))
+    expect(ids.size).toBe(list.length)
   })
 })
 

@@ -9,9 +9,9 @@ describe('NextGuestTag', () => {
     fireEvent.click(screen.getByText('＋後續入住'))
     expect(onToggle).toHaveBeenCalled()
   })
-  it('on=true → 顯示 後續入住 標籤', () => {
+  it('on=true → 顯示明顯的後續入住標籤', () => {
     render(<NextGuestTag on editable onToggle={() => {}} />)
-    expect(screen.getByText('後續入住')).toBeTruthy()
+    expect(screen.getByText(/後續入住/)).toBeTruthy()
   })
   it('不可編輯且 on=false → 不渲染任何東西', () => {
     const { container } = render(<NextGuestTag on={false} editable={false} onToggle={() => {}} />)

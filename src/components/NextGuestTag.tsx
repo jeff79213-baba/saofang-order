@@ -4,10 +4,10 @@ export function NextGuestTag({ on, editable, onToggle }: {
   if (on) {
     return (
       <span
-        className={`rounded bg-amber-100 px-1 py-0.5 text-[10px] text-amber-900 ${editable ? 'cursor-pointer' : ''}`}
+        className={`tag-pop inline-flex items-center gap-0.5 rounded border border-amber-500 bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-amber-950 shadow-sm ${editable ? 'cursor-pointer' : ''}`}
         onClick={editable ? (e) => { e.stopPropagation(); onToggle() } : undefined}
       >
-        後續入住
+        ★ 後續入住
       </span>
     )
   }

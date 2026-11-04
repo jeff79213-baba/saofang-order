@@ -1,10 +1,10 @@
 import {
-  collection, doc, onSnapshot, getDoc, getDocs, setDoc, updateDoc, writeBatch,
+  collection, doc, onSnapshot, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch,
 } from 'firebase/firestore'
 import type { RoomMeta, RoomState, Settings } from '../types'
 import { DEFAULT_FLOORS, DEFAULT_LAYOUT } from '../types'
 import { authClient, dbClient } from './firebase'
-import { buildRoomList } from './rooms'
+import { newRoomId } from './rooms'
 import type { RoomRepo } from './repo'
 
 const DAYS = 'sq-days'
@@ -18,6 +18,7 @@ export function createFirebaseRepo(): RoomRepo {
 
   const dayCol = (day: string) => collection(db, DAYS, day, 'rooms')
   const roomDoc = (day: string, id: string) => doc(db, DAYS, day, 'rooms', id)
+  const orderDoc = (day: string, floorId: string) => doc(db, DAYS, day, 'orders', floorId)
 
   function freshState(m: RoomMeta, status: RoomState['status'] = 'dirty'): Omit<RoomState, 'id'> {
     return {
@@ -90,38 +91,32 @@ export function createFirebaseRepo(): RoomRepo {
     async setRoomEnabled(roomId, enabled) {
       await updateDoc(doc(db, ROOMS, roomId), { enabled })
     },
-    async applyLayout(layout) {
-      const settings = await this.getSettings()
-      await setDoc(doc(db, SETTINGS, 'app'), { layout }, { merge: true })
-      const fresh = buildRoomList(layout, settings.floors)
-      const freshIds = new Set(fresh.map(r => r.id))
-      const existing = await getDocs(collection(db, ROOMS))
-      const existingIds = new Set(existing.docs.map(d => d.id))
-      const batch = writeBatch(db)
-      for (const r of fresh) {
-        if (!existingIds.has(r.id)) {
-          const { id, ...rest } = r
-          batch.set(doc(db, ROOMS, id), rest)
-        }
-      }
-      for (const d of existing.docs) {
-        if (!freshIds.has(d.id)) batch.update(doc(db, ROOMS, d.id), { enabled: false })
-      }
-      await batch.commit()
-
-      if (currentDay) {
-        const daySnap = await getDocs(dayCol(currentDay))
-        const dayIds = new Set(daySnap.docs.map(d => d.id))
-        const b2 = writeBatch(db)
-        let any = false
-        for (const r of fresh) {
-          if (!dayIds.has(r.id)) {
-            b2.set(roomDoc(currentDay, r.id), freshState(r))
-            any = true
-          }
-        }
-        if (any) await b2.commit()
-      }
+    async addRoom(building, floor, no) {
+      const id = newRoomId(building)
+      const meta: RoomMeta = { id, building, floor, no, enabled: true }
+      await setDoc(doc(db, ROOMS, id), { building, floor, no, enabled: true })
+      if (currentDay) await setDoc(roomDoc(currentDay, id), freshState(meta))
+    },
+    async updateRoomNo(roomId, no) {
+      await updateDoc(doc(db, ROOMS, roomId), { no })
+      if (currentDay) await updateDoc(roomDoc(currentDay, roomId), { no })
+    },
+    async removeRoom(roomId) {
+      await deleteDoc(doc(db, ROOMS, roomId))
+      if (currentDay) await deleteDoc(roomDoc(currentDay, roomId)).catch(() => {})
+    },
+    subscribeOrder(dayKey, floorId, cb) {
+      return onSnapshot(
+        orderDoc(dayKey, floorId),
+        snap => cb(snap.exists() ? ((snap.data().ids as string[]) ?? []) : []),
+        () => cb([]),
+      )
+    },
+    async saveOrder(dayKey, floorId, ids) {
+      await setDoc(orderDoc(dayKey, floorId), { ids, updatedAt: Date.now(), updatedBy: uid() })
+    },
+    async clearOrder(dayKey, floorId) {
+      await deleteDoc(orderDoc(dayKey, floorId))
     },
   }
 }
