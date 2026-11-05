@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BuildingId, Role, RoomState, Settings } from '../types'
 import { BUILDINGS, BUILDING_LABEL } from '../types'
-import { buildQueueBuilding } from '../lib/ordering'
+import { buildQueue, buildQueueBuilding } from '../lib/ordering'
 import { nextDayKey } from '../lib/dayKey'
 import type { RoomRepo } from '../lib/repo'
 import { HeaderBar } from '../components/HeaderBar'
@@ -76,11 +76,22 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
     return map
   }, [rooms, building])
 
-  // 整棟一起編號（依權重），不逐層重來
+  // 一館：整棟一起編號；二館：分層各自從 1 開始
   const seqAll = useMemo(() => {
     const m = new Map<string, number>()
     const buildingRooms = rooms.filter(r => r.building === building)
-    for (const { room, seq } of buildQueueBuilding(buildingRooms, orders)) m.set(room.id, seq)
+    if (building === 'A') {
+      for (const { room, seq } of buildQueueBuilding(buildingRooms, orders)) m.set(room.id, seq)
+    } else {
+      const byF = new Map<number, RoomState[]>()
+      for (const r of buildingRooms) {
+        if (!byF.has(r.floor)) byF.set(r.floor, [])
+        byF.get(r.floor)!.push(r)
+      }
+      for (const [floor, arr] of byF) {
+        for (const { room, seq } of buildQueue(arr, orders[`${building}-${floor}`])) m.set(room.id, seq)
+      }
+    }
     return m
   }, [rooms, building, orders])
 
@@ -127,7 +138,8 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
 
   function onConfirmTime(time: string) {
     if (!timeRoom) return
-    const patch: Partial<RoomState> = { checkInTime: time }
+    // 有輸入入住時間 → 自動點亮「後續入住」
+    const patch: Partial<RoomState> = { checkInTime: time, nextGuest: true }
     if (timeRoom.status === 'dirty' || timeRoom.status === 'clean') patch.status = 'arriving'
     send([{ roomId: timeRoom.id, patch }])
     setTimeRoom(null)
