@@ -1,13 +1,11 @@
 import type { BuildingId, Role } from '../types'
 import { BUILDINGS, BUILDING_LABEL } from '../types'
-import { ModeToggle } from './ModeToggle'
 
 export function HeaderBar(props: {
   building: BuildingId
   onBuilding: (b: BuildingId) => void
   role: Role
   mode: 'normal' | 'clean'
-  onMode: () => void
   dayKey: string
   isDemo: boolean
   onFillHouse: () => void
@@ -34,7 +32,7 @@ export function HeaderBar(props: {
         <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{isFront ? '櫃台' : '房務'}</span>
       </div>
       <div className="flex items-center gap-2 px-4 pb-2">
-        <ModeToggle mode={props.mode} locked={!isFront} onToggle={props.onMode} />
+        {!isFront && <span className="rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white">掃房模式</span>}
         {props.isDemo && <span className="text-xs text-amber-700">DEMO 模式（資料不共用）</span>}
         <div className="ml-auto flex gap-2">
           {isFront && (

@@ -5,7 +5,7 @@ import { HeaderBar } from './HeaderBar'
 function setup(role: 'front' | 'housekeeping', onClearHouse = vi.fn()) {
   render(
     <HeaderBar
-      building="A" onBuilding={() => {}} role={role} mode="normal" onMode={() => {}}
+      building="A" onBuilding={() => {}} role={role} mode="normal"
       dayKey="2026-11-12" isDemo={false}
       onFillHouse={() => {}} onClearHouse={onClearHouse} onResetDay={() => {}}
       onSettings={() => {}} onSignOut={() => {}}

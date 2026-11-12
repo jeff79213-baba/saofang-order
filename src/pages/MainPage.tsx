@@ -25,7 +25,6 @@ interface Props {
 
 export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSettings, onSignOut }: Props) {
   const [building, setBuilding] = useState<BuildingId>('A')
-  const [mode, setMode] = useState<'normal' | 'clean'>(role === 'housekeeping' ? 'clean' : 'normal')
   const [pending, setPending] = useState<Set<string>>(new Set())
   const [toasts, setToasts] = useState<ToastMsg[]>([])
   const [timeRoom, setTimeRoom] = useState<RoomState | null>(null)
@@ -33,7 +32,7 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
   const [orders, setOrders] = useState<Record<string, string[]>>({})
   const [confirm, setConfirm] = useState<null | { title: string; message: string; onOk: () => void }>(null)
 
-  const effectiveMode: 'normal' | 'clean' = role === 'housekeeping' ? 'clean' : mode
+  const effectiveMode: 'normal' | 'clean' = role === 'housekeeping' ? 'clean' : 'normal'
   const canCustomOrder = role === 'front'
 
   useEffect(() => {
@@ -216,7 +215,7 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
     <div className="min-h-full bg-slate-100 pb-10">
       <HeaderBar
         building={building} onBuilding={setBuilding} role={role}
-        mode={effectiveMode} onMode={() => setMode(m => (m === 'clean' ? 'normal' : 'clean'))}
+        mode={effectiveMode}
         dayKey={dayKey} isDemo={isDemo}
         onFillHouse={onFillHouse} onClearHouse={onClearHouse} onResetDay={onResetDay} onSettings={onOpenSettings}
         onSignOut={onSignOut}
