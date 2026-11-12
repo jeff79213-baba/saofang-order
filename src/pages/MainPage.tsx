@@ -187,6 +187,22 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
     })
   }
 
+  function onMarkAllClean() {
+    const inBuilding = rooms.filter(r => r.building === building)
+    const label = BUILDING_LABEL[building]
+    setConfirm({
+      title: `一鍵已掃（${label}）`,
+      message: `將 ${inBuilding.length} 間房全部標記為「已打掃」，確定嗎？`,
+      onOk: () => {
+        setConfirm(null)
+        send(inBuilding.map(r => r.status === 'clean'
+          ? { roomId: r.id, patch: { status: 'clean' as const } }
+          : { roomId: r.id, patch: { prevStatus: r.status, status: 'clean' as const } }))
+        toast(`${label}已全部標記為已打掃`)
+      },
+    })
+  }
+
   function onResetDay() {
     const target = nextDayKey(dayKey)
     setConfirm({
@@ -217,7 +233,7 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
         building={building} onBuilding={setBuilding} role={role}
         mode={effectiveMode}
         dayKey={dayKey} isDemo={isDemo}
-        onFillHouse={onFillHouse} onClearHouse={onClearHouse} onResetDay={onResetDay} onSettings={onOpenSettings}
+        onFillHouse={onFillHouse} onClearHouse={onClearHouse} onMarkAllClean={onMarkAllClean} onResetDay={onResetDay} onSettings={onOpenSettings}
         onSignOut={onSignOut}
       />
       <main className="px-4 py-4">
