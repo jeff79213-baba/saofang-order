@@ -46,7 +46,6 @@ export function LoginPage() {
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="mb-3 w-full rounded-lg border border-slate-300 p-2 text-sm"
-          placeholder={`WIND00 或 username@${LOGIN_DOMAIN}`}
           autoComplete="username"
         />
         <label className="mb-1 block text-sm text-slate-600">密碼</label>
