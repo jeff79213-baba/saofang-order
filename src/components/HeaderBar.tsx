@@ -11,6 +11,7 @@ export function HeaderBar(props: {
   dayKey: string
   isDemo: boolean
   onFillHouse: () => void
+  onClearHouse: () => void
   onResetDay: () => void
   onSettings: () => void
   onSignOut: () => void
@@ -39,6 +40,7 @@ export function HeaderBar(props: {
           {isFront && (
             <>
               <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onFillHouse}>一鍵滿房</button>
+              <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onClearHouse}>一鍵未入住</button>
               <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onResetDay}>換日</button>
               <button className="rounded-lg bg-slate-100 px-2 py-1 text-xs" onClick={props.onSettings}>⚙</button>
             </>

@@ -168,6 +168,26 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
     })
   }
 
+  function onClearHouse() {
+    const inBuilding = rooms.filter(r => r.building === building)
+    const label = BUILDING_LABEL[building]
+    setConfirm({
+      title: `一鍵未入住（${label}）`,
+      message: `將 ${inBuilding.length} 間房全部設為「未入住」，並清除入住時間與後續入住標記，確定嗎？`,
+      onOk: () => {
+        setConfirm(null)
+        send(inBuilding.map(r => ({
+          roomId: r.id,
+          patch: {
+            status: 'dirty' as const, checkInTime: null, nextGuest: false,
+            checkedOutAt: null, prevStatus: null,
+          },
+        })))
+        toast(`${label}已全部設為未入住`)
+      },
+    })
+  }
+
   function onResetDay() {
     const target = nextDayKey(dayKey)
     setConfirm({
@@ -198,7 +218,7 @@ export function MainPage({ rooms, settings, role, isDemo, repo, dayKey, onOpenSe
         building={building} onBuilding={setBuilding} role={role}
         mode={effectiveMode} onMode={() => setMode(m => (m === 'clean' ? 'normal' : 'clean'))}
         dayKey={dayKey} isDemo={isDemo}
-        onFillHouse={onFillHouse} onResetDay={onResetDay} onSettings={onOpenSettings}
+        onFillHouse={onFillHouse} onClearHouse={onClearHouse} onResetDay={onResetDay} onSettings={onOpenSettings}
         onSignOut={onSignOut}
       />
       <main className="px-4 py-4">
