@@ -25,7 +25,7 @@ export function LoginPage() {
     try {
       const { authClient } = await import('../lib/firebase')
       const { signInWithEmailAndPassword } = await import('firebase/auth')
-      const id = email.trim()
+      const id = email.trim().toLowerCase()
       const full = id.includes('@') ? id : `${id}@${LOGIN_DOMAIN}`
       await signInWithEmailAndPassword(authClient(), full, pw)
     } catch {
@@ -47,6 +47,9 @@ export function LoginPage() {
           onChange={e => setEmail(e.target.value)}
           className="mb-3 w-full rounded-lg border border-slate-300 p-2 text-sm"
           autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
         />
         <label className="mb-1 block text-sm text-slate-600">密碼</label>
         <div className="pw-wrap mb-4 flex items-center" style={{ position: 'relative' }}>

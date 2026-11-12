@@ -20,7 +20,7 @@ function NoteInput({ value, onSave }: { value: string; onSave: (v: string) => vo
   )
 }
 
-export function AccountsPage({ onBack }: { onBack: () => void }) {
+export function AccountsPage({ onBack, selfUid }: { onBack: () => void; selfUid?: string }) {
   const [rows, setRows] = useState<AccountRow[]>([])
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState<string | null>(null)
@@ -63,6 +63,7 @@ export function AccountsPage({ onBack }: { onBack: () => void }) {
           <h2 className="mb-2 text-sm font-semibold text-slate-500">新增帳號</h2>
           <div className="grid grid-cols-2 gap-2">
             <input className="rounded-lg border border-slate-300 p-2 text-sm" placeholder="短帳號（如 WIND01）"
+              autoCapitalize="none" autoCorrect="off" spellCheck={false}
               value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} />
             <input className="rounded-lg border border-slate-300 p-2 text-sm" placeholder="備註（中文名）"
               value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} />
@@ -104,30 +105,40 @@ export function AccountsPage({ onBack }: { onBack: () => void }) {
         <section className="mb-4 rounded-2xl bg-white p-3">
           <h2 className="mb-2 text-sm font-semibold text-slate-500">帳號（{active.length}）</h2>
           {loading && <div className="text-sm text-slate-400">載入中…</div>}
-          {active.map(a => (
-            <div key={a.uid} className="flex flex-wrap items-center gap-2 border-t border-slate-100 py-2">
-              <div className="min-w-[150px] flex-1">
-                <div className="text-sm font-semibold">
-                  {a.role === 'front' && <span className="mr-1 rounded bg-indigo-600 px-1 py-0.5 text-[10px] text-white">櫃台</span>}
-                  {a.email || a.uid}
+          {active.map(a => {
+            const isSelf = a.uid === selfUid
+            return (
+              <div key={a.uid} className="flex flex-wrap items-center gap-2 border-t border-slate-100 py-2">
+                <div className="min-w-[150px] flex-1">
+                  <div className="text-sm font-semibold">
+                    {a.role === 'front' && <span className="mr-1 rounded bg-indigo-600 px-1 py-0.5 text-[10px] text-white">櫃台</span>}
+                    {a.email || a.uid}
+                    {isSelf && <span className="ml-1 rounded bg-slate-200 px-1 py-0.5 text-[10px] text-slate-600">本人</span>}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {a.disabled ? <span className="text-amber-600">已停用</span> : '正常'}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500">
-                  {a.disabled ? <span className="text-amber-600">已停用</span> : '正常'}
-                </div>
+                {isSelf ? (
+                  <div className="text-xs text-slate-400">本人帳號不可在此停用或刪除</div>
+                ) : (
+                  <>
+                    <NoteInput value={a.note} onSave={v => run(() => setNote(a.uid, v), '已更新備註')} />
+                    <select className="rounded-lg border border-slate-300 p-1 text-xs" value={a.role}
+                      disabled={busy}
+                      onChange={e => run(() => setRole(a.uid, e.target.value as Role), '已更新角色')}>
+                      <option value="housekeeping">房務</option>
+                      <option value="front">櫃台</option>
+                    </select>
+                    {a.disabled
+                      ? <button disabled={busy} className="rounded-lg bg-emerald-600 px-2 py-1 text-xs text-white" onClick={() => run(() => enableAccount(a.uid), '已啟用')}>啟用</button>
+                      : <button disabled={busy} className="rounded-lg bg-amber-100 px-2 py-1 text-xs text-amber-800" onClick={() => run(() => disableAccount(a.uid), '已停用')}>停用</button>}
+                    <button disabled={busy} className="rounded-lg bg-red-50 px-2 py-1 text-xs text-red-600" onClick={() => run(() => deleteAccount(a.uid), '已移至保留區')}>刪除</button>
+                  </>
+                )}
               </div>
-              <NoteInput value={a.note} onSave={v => run(() => setNote(a.uid, v), '已更新備註')} />
-              <select className="rounded-lg border border-slate-300 p-1 text-xs" value={a.role}
-                disabled={busy}
-                onChange={e => run(() => setRole(a.uid, e.target.value as Role), '已更新角色')}>
-                <option value="housekeeping">房務</option>
-                <option value="front">櫃台</option>
-              </select>
-              {a.disabled
-                ? <button disabled={busy} className="rounded-lg bg-emerald-600 px-2 py-1 text-xs text-white" onClick={() => run(() => enableAccount(a.uid), '已啟用')}>啟用</button>
-                : <button disabled={busy} className="rounded-lg bg-amber-100 px-2 py-1 text-xs text-amber-800" onClick={() => run(() => disableAccount(a.uid), '已停用')}>停用</button>}
-              <button disabled={busy} className="rounded-lg bg-red-50 px-2 py-1 text-xs text-red-600" onClick={() => run(() => deleteAccount(a.uid), '已移至保留區')}>刪除</button>
-            </div>
-          ))}
+            )
+          })}
         </section>
 
         <section className="rounded-2xl bg-slate-200 p-3">

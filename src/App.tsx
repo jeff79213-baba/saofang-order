@@ -29,7 +29,7 @@ function AuthedApp({ dayKey, auth }: {
   const [page, setPage] = useState<'main' | 'settings' | 'accounts'>('main')
 
   if (page === 'accounts' && auth.role === 'front') {
-    return <AccountsPage onBack={() => setPage('settings')} />
+    return <AccountsPage onBack={() => setPage('settings')} selfUid={auth.uid} />
   }
 
   if (page === 'settings') {
